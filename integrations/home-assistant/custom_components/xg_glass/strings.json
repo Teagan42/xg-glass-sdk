@@ -1,0 +1,35 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Set up xg.glass Smart Glasses",
+        "description": "Give this glasses device a name. You can add multiple devices (one config entry each).",
+        "data": {
+          "device_name": "Device name"
+        },
+        "data_description": {
+          "device_name": "A human-readable label shown in the Home Assistant UI, e.g. \"Rokid Glasses\"."
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This device is already configured."
+    }
+  },
+  "services": {
+    "display": {
+      "name": "Send to glasses display",
+      "description": "Push text directly to the glasses display. The glasses companion app must be running and connected.",
+      "fields": {
+        "message": {
+          "name": "Message",
+          "description": "The text to show on the glasses display."
+        },
+        "title": {
+          "name": "Title",
+          "description": "Optional title prepended to the message."
+        }
+      }
+    }
+  }
+}
