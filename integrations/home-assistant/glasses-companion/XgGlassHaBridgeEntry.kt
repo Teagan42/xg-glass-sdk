@@ -173,7 +173,7 @@ class HomeAssistantEntry : UniversalAppEntrySimple {
                                 if (result != null) {
                                     ctx.playTts(result, ws, haUrl)
                                 }
-                                delay(300)
+                                delay(WAKE_WORD_COOLDOWN_MS)
                                 ctx.client.display("Listening for wake word…")
                             } finally {
                                 mic.stop()
@@ -217,7 +217,7 @@ class HomeAssistantEntry : UniversalAppEntrySimple {
                 ws.connect()
                 val mic = ctx.client.startMicrophone(HA_MIC_OPTIONS).getOrThrow()
                 try {
-                    val result = withTimeoutOrNull(20_000L) {
+                    val result = withTimeoutOrNull(QUICK_ASSIST_TIMEOUT_MS) {
                         ws.runAssistPipeline(
                             startStage = "stt",
                             endStage = "tts",
@@ -318,7 +318,7 @@ class HomeAssistantEntry : UniversalAppEntrySimple {
                 ws.connect()
                 val mic = ctx.client.startMicrophone(HA_MIC_OPTIONS).getOrThrow()
                 try {
-                    val result = withTimeoutOrNull(15_000L) {
+                    val result = withTimeoutOrNull(VOICE_TOGGLE_TIMEOUT_MS) {
                         ws.runAssistPipeline(
                             startStage = "stt",
                             endStage = "tts",
@@ -409,7 +409,7 @@ class HomeAssistantEntry : UniversalAppEntrySimple {
                 val mic = ctx.client.startMicrophone(HA_MIC_OPTIONS).getOrThrow()
                 var transcript: String? = null
                 try {
-                    val result = withTimeoutOrNull(10_000L) {
+                    val result = withTimeoutOrNull(ADD_TODO_TIMEOUT_MS) {
                         // STT only — we handle the action ourselves.
                         ws.runAssistPipeline(
                             startStage = "stt",
@@ -455,6 +455,32 @@ class HomeAssistantEntry : UniversalAppEntrySimple {
 
         /** Event type that the HA xg_glass component fires when display text is pushed. */
         internal const val EVENT_DISPLAY = "xg_glass_display"
+
+        // ── Pipeline timing constants ─────────────────────────────────────────
+
+        /** Seconds HA waits for a wake word before giving up and restarting. */
+        internal const val WAKE_WORD_TIMEOUT_SECONDS = 3
+
+        /** Seconds HA waits for speech to begin after the wake word (VAD). */
+        internal const val VAD_TIMEOUT_SECONDS = 3.0
+
+        /** Seconds of mic audio buffered before the wake word (pre-roll). */
+        internal const val AUDIO_BUFFER_SECONDS = 2
+
+        /** Seconds HA waits for an STT result from a non-wake-word pipeline. */
+        internal const val STT_TIMEOUT_SECONDS = 10
+
+        /** ms the satellite waits between pipeline runs before restarting. */
+        internal const val WAKE_WORD_COOLDOWN_MS = 300L
+
+        /** Total ms allowed for a Quick Assist round trip (listen + intent + TTS). */
+        internal const val QUICK_ASSIST_TIMEOUT_MS = 20_000L
+
+        /** Total ms allowed for a Voice Toggle round trip. */
+        internal const val VOICE_TOGGLE_TIMEOUT_MS = 15_000L
+
+        /** Total ms allowed for the STT-only pass used by Add To-Do. */
+        internal const val ADD_TODO_TIMEOUT_MS = 10_000L
 
         /** Microphone options matching HA's expected PCM-16 / 16 kHz / mono format. */
         internal val HA_MIC_OPTIONS = MicrophoneOptions(
@@ -711,9 +737,13 @@ private suspend fun HaWebSocket.runAssistPipeline(
                 put("start_stage", startStage)
                 put("end_stage", endStage)
                 put("input", JSONObject().apply {
-                    put("timeout", if (startStage == "wake_word") 3 else 10)
-                    put("audio_seconds_to_buffer", 2)
-                    put("no_vad_timeout", 3.0)
+                    put(
+                        "timeout",
+                        if (startStage == "wake_word") HomeAssistantEntry.WAKE_WORD_TIMEOUT_SECONDS
+                        else HomeAssistantEntry.STT_TIMEOUT_SECONDS,
+                    )
+                    put("audio_seconds_to_buffer", HomeAssistantEntry.AUDIO_BUFFER_SECONDS)
+                    put("no_vad_timeout", HomeAssistantEntry.VAD_TIMEOUT_SECONDS)
                     put("sample_rate", 16_000)
                 })
                 if (!pipelineId.isNullOrBlank()) put("pipeline", pipelineId)
