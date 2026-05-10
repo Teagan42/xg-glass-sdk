@@ -66,6 +66,19 @@ class HandTrackingEntry : UniversalAppEntrySimple {
     )
 
     // -----------------------------------------------------------------------
+    // Tuning constants
+    // -----------------------------------------------------------------------
+
+    /** Capture-to-capture delay in milliseconds (~2 fps). Balances responsiveness vs. API cost. */
+    private val frameDelayMs = 500L
+
+    /**
+     * Maximum normalized distance (0–1) between the hand and a window for a pinch to grab it.
+     * 0.25 ≈ 25% of the frame width/height.
+     */
+    private val snapRadius = 0.25f
+
+    // -----------------------------------------------------------------------
     // Virtual window state
     // -----------------------------------------------------------------------
 
@@ -201,9 +214,6 @@ class HandTrackingEntry : UniversalAppEntrySimple {
                 var lastHandY = 0.5f
                 var wasPinching = false
 
-                // Snap radius: grab window only if hand is within 25% of total screen size.
-                val snapRadius = 0.25f
-
                 ctx.client.display(
                     "🖐 Hand Tracking Windows\nPosition your hand in frame to begin.",
                     DisplayOptions(),
@@ -268,9 +278,10 @@ class HandTrackingEntry : UniversalAppEntrySimple {
                                 grabbedIndex = nearest?.takeIf { i ->
                                     distanceTo(windows[i], handState.x, handState.y) <= snapRadius
                                 }
+                                val grabbed = grabbedIndex
                                 ctx.log(
-                                    if (grabbedIndex != null)
-                                        "Grabbed: ${windows[grabbedIndex!!].label}"
+                                    if (grabbed != null)
+                                        "Grabbed: ${windows[grabbed].label}"
                                     else
                                         "Pinch — no window in range"
                                 )
@@ -278,8 +289,9 @@ class HandTrackingEntry : UniversalAppEntrySimple {
 
                             // Pinch release → drop
                             if (!handState.pinching && wasPinching) {
-                                if (grabbedIndex != null) {
-                                    ctx.log("Released: ${windows[grabbedIndex!!].label}")
+                                val grabbed = grabbedIndex
+                                if (grabbed != null) {
+                                    ctx.log("Released: ${windows[grabbed].label}")
                                 }
                                 grabbedIndex = null
                             }
@@ -309,7 +321,7 @@ class HandTrackingEntry : UniversalAppEntrySimple {
                     }
 
                     // ~2 fps — balances responsiveness against API cost & latency.
-                    delay(500)
+                    delay(frameDelayMs)
                 }
 
                 return Result.success(Unit)
