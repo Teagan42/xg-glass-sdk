@@ -705,6 +705,7 @@ See the sample apps repository for complete, runnable examples:
 | **photo_translator** | Capture photo → AI translate → display result | `capturePhoto`, `display` |
 | **exam_solver** | Auto-capture loop with streaming AI and conversation memory | `capturePhoto`, `display` (streaming with `force`), `AIApiSettings` |
 | **subtext-interpreter** | Record speech → Whisper transcribe → GPT analyze → display advice | `startMicrophone`, `display`, `AIApiSettings` |
+| **hand-tracking-windows** | Continuously track hand position & detect pinch gesture; pinch to grab a virtual window and move it, unpinch to release | `capturePhoto` (loop), `display` (force), vision AI (GPT-4o), `AIApiSettings` |
 
 Each sample is a single `.kt` file that you can run directly:
 
@@ -714,6 +715,18 @@ xg-glass run TranslationEntry.kt
 
 # or with simulator:
 xg-glass run --sim TranslationEntry.kt
+```
+
+The **hand-tracking-windows** sample lives inside this repo at
+`templates/hand-tracking-windows/HandTrackingEntry.kt` and can be run the same way:
+
+```bash
+xg-glass run templates/hand-tracking-windows/HandTrackingEntry.kt
+# simulator (webcam as camera)
+xg-glass run --sim templates/hand-tracking-windows/HandTrackingEntry.kt
+# simulator with a pre-recorded video
+xg-glass run --sim --local_video /path/to/hands.mp4 \
+    templates/hand-tracking-windows/HandTrackingEntry.kt
 ```
 
 ---
